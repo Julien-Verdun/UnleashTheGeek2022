@@ -1,0 +1,13 @@
+{
+    "editor.codeActionsOnSave": {
+    
+    },
+    "emeraldwalk.runonsave": {
+        "commands": [
+          {
+            "match": "\\.py$",
+            "cmd": "python mergeFiles.py"
+          }
+        ]
+      }
+}

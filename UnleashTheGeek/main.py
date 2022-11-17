@@ -1,20 +1,12 @@
-import sys
-import math
+game = Game()
 
-# Auto-generated code below aims at helping you parse
-# the standard input according to the problem statement.
-
-width, height = [int(i) for i in input().split()]
-
-# game loop
 while True:
-    my_matter, opp_matter = [int(i) for i in input().split()]
-    for i in range(height):
-        for j in range(width):
-            # owner: 1 = me, 0 = foe, -1 = neutral
-            scrap_amount, owner, units, recycler, can_build, can_spawn, in_range_of_recycler = [int(k) for k in input().split()]
+    inputs = Inputs(HEIGHT, WIDTH, ME, OPP)
+    inputs.readInput()
+    game.inputs = inputs
+    actions = game.play()
 
-    # Write an action using print
+    print(actions, file=sys.stderr, flush=True)
+
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
-
-    print("WAIT")
+    print(';'.join(actions) if len(actions) > 0 else 'WAIT')
