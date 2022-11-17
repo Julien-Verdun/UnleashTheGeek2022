@@ -23,6 +23,7 @@ class Inputs:
         # Game logic (Game class)
         # Outputs print (OutputPrint class)
         for y in range(self.height):
+            tiles = []
             for x in range(self.width):
                 # owner: 1 = me, 0 = foe, -1 = neutral
                 # recycler, can_build, can_spawn, in_range_of_recycler: 1 = True, 0 = False
@@ -31,7 +32,7 @@ class Inputs:
                 tile = Tile(x, y, scrap_amount, owner, units, recycler == 1,
                             can_build == 1, can_spawn == 1, in_range_of_recycler == 1)
 
-                self.tiles.append(tile)
+                tiles.append(tile)
 
                 if tile.owner == self.me:
                     self.my_tiles.append(tile)
@@ -49,4 +50,5 @@ class Inputs:
                     self.other_tiles.append(tile)
                     if tile.scrap_amount > 0:
                         self.neutral_tiles.append(tile)
+            self.tiles.append(tiles)
         self.targeted_tiles = self.neutral_tiles + self.opp_tiles

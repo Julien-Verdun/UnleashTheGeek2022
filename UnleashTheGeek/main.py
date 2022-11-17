@@ -1,4 +1,4 @@
-game = Game()
+game = Game(HEIGHT, WIDTH)
 
 while True:
     inputs = Inputs(HEIGHT, WIDTH, ME, OPP)
