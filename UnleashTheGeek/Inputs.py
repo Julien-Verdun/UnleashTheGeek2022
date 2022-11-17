@@ -14,6 +14,8 @@ class Inputs:
         self.opp_tiles = []
         self.my_tiles = []
         self.neutral_tiles = []
+        self.other_tiles = []
+        self.targeted_tiles = []
 
     def readInput(self):
 
@@ -44,4 +46,7 @@ class Inputs:
                     elif tile.recycler:
                         self.opp_recyclers.append(tile)
                 else:
-                    self.neutral_tiles.append(tile)
+                    self.other_tiles.append(tile)
+                    if tile.scrap_amount > 0:
+                        self.neutral_tiles.append(tile)
+        self.targeted_tiles = self.neutral_tiles + self.opp_tiles
