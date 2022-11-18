@@ -12,7 +12,7 @@ class Tile:
     def get_coordinates(self):
         return [self.x, self.y]
     def is_grass(self):
-        return self.scrap_amount < 0
+        return self.scrap_amount <= 0
     def is_recycler(self):
         return self.recycler == 1
     def is_neutral(self):
