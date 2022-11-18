@@ -1,48 +1,21 @@
 # UnleashTheGeek2022
 
-## Strategies
+## Description
 
-### Strategy 0 - Dummy moves :
-- Step 1 - Information scraping and instanciation:
-    - Iterate over all cells :
-      - If one or more robots is on the cell :
-          - For each robot, instanciate the robots :
-            - Give an id
-            - Give the owner id
-            - Give to him its cell's infos
-              - Position
+Competiton on platform **Coding Game** with around 150 teams of 3 from all Amadeus sites. 
 
-- Step 2 - Compute the actions :
-  - Iterate over all our robots
-    - Compute the action and put it :
-      - If MOVE 1 robot.x robot.y robot.x + (np.randint(-1, 1)) robot.y + (np.randint(-1, 1)) raise an error :
-        - WAIT
-      - Else :
-        - MOVE 1 robot.x robot.y robot.x + 1 robot.y + 1
+The python file **mergeFiles.py** reads all python files inside UnleashTheGeek folder and merges them into one single file **UnleashTheGeek2022.py**, with distinct import at the beginning.
 
-### Strategy 1 - 
+The python script can be automatically executed on save by adding this on the seetings.json file (File -> Preferences -> Settings -> Code Actions On Save):
+```
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.py$",
+        "cmd": "python mergeFiles.py"
+      }
+    ]
+  }
+```
 
-Strategy 2 :
-- Step 1 - Information scraping and instanciation:
-    - Iterate over all cells :
-      If one or more robots is on the cell :
-        - Get the information of adjacent cells
-        - Instanciate the robots :
-          - For each robot :
-            - Give an id
-            - Give the owner id
-            - Give to him its cell's infos
-            - Give to him the list of adjacent cells infos
-            - Give an empty action
-
-- Step 2 - Compute the actions :
-  - Iterate over all our robots
-    - Compute the action and put it
-      - If ??? :
-        -  MOVE amount fromX fromY toX toY
-      - Elif ??? :
-        - Update
-        - BUILD x y 
-      - Elif ??? -> SPAWN amount x y
-              - Else -> WAIT
-
+The file **UnleashTheGeek2022.py** can be used on Coding Game to synchronise the Coding Game IDE with this file and to automatically execute code on change. 

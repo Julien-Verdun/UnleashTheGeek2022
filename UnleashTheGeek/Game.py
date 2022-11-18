@@ -10,8 +10,10 @@ class Game:
         self.height = height
         self.width = width
         self.interval_recycler = 2
-        self.ratio_scouters = 0.8
-        self.height_threshold = 10
+        self.ratio_scouters = 1
+        self.height_threshold = 8
+        self.should_build_recycler = True
+        self.number_turn_for_strategy = 5
 
     def distance_tiles(self, tileA, tileB):
         return self.distance(tileA.x, tileA.y, tileB.x, tileB.y) 
@@ -21,33 +23,42 @@ class Game:
     
     def update_interval_recycler(self):
         if self.height >= self.height_threshold:
-            if self.turn < 10:
+            self.number_turn_for_strategy = 10
+            if self.turn < 5:
                 self.interval_recycler = 2
             elif self.turn < 20:
-                self.interval_recycler = 3
-            elif self.turn < 30:
-                self.interval_recycler = 4
+                self.interval_recycler = 1
             elif self.turn < 40:
-                self.interval_recycler = 5
+                self.interval_recycler = 2
             elif self.turn >= 50:
-                self.interval_recycler = 10
-
-            if self.turn < 15:
-              self.ratio_scouters = 1
-            elif self.turn < 30:
-                self.ratio_scouters = 0.5
-        else:
-            if self.turn < 10:
-                self.interval_recycler = 3
-            elif self.turn < 20:
-                self.interval_recycler = 10
-            elif self.turn < 40:
                 self.interval_recycler = 1000
 
-            if self.turn < 10:
-                self.ratio_scouters = 1
+            if self.turn < 25:
+              self.ratio_scouters = 1
+            elif self.turn < 40:
+                self.ratio_scouters = 0.8
+            else:
+                self.ratio_scouters = 0.6
+        else:
+            self.number_turn_for_strategy = 5
+            if self.turn < 6:
+                self.interval_recycler = 2
+            elif self.turn < 12:
+                self.interval_recycler = 1
             elif self.turn < 20:
-                self.ratio_scouters = 0.5
+                self.interval_recycler = 5
+            elif self.turn < 40:
+                self.interval_recycler = 10
+            elif self.turn >= 40:
+                self.interval_recycler = 1000
+
+            if self.turn < 15:
+                self.ratio_scouters = 1
+            elif self.turn < 30:
+                self.ratio_scouters = 0.8
+            else:
+                self.ratio_scouters = 0.6
+
 
     def get_extreme_tiles(self,tile, list_tiles, ratio=0.2):
         ordered_tiles = list_tiles
@@ -106,9 +117,9 @@ class Game:
         return self.get_extreme_tiles(opponent_center, self.inputs.my_units, ratio)
 
     def get_closest_tiles_from_opponent_tile(self, opponent_tile):
-        a,b = self.get_extreme_tiles(opponent_tile, self.inputs.my_tiles, 1)
-        a.reverse()
-        return a
+        farest_tiles, _  = self.get_extreme_tiles(opponent_tile, self.inputs.my_tiles, 1)
+        farest_tiles.reverse()
+        return farest_tiles
 
     def total_scrap_amount_of_adjacent_tiles(self, tile):
         if tile.x > 0 and tile.x < self.width-1 and tile.y > 0 and tile.y < self.height-1:     
@@ -121,12 +132,19 @@ class Game:
                 return True
         return False
 
-    def get_best_recycler_tile(self):
-        list_eligible_tiles = list(filter(lambda tile: tile.can_build() and not tile.has_units() and (not self.is_tile_near_recycler(tile)), self.inputs.my_tiles))
-        if len(list_eligible_tiles) > 0:
-            list_scrap_amounts = list(map(lambda tile : self.total_scrap_amount_of_adjacent_tiles(tile), list_eligible_tiles ))
-            best_recycler_location_index = np.argmax(list_scrap_amounts)
-            return list_eligible_tiles[best_recycler_location_index]
+    def get_best_recycler_tile(self, logic="closer_to_opp"):
+        if logic == "best_amount":
+            list_eligible_tiles = list(filter(lambda tile: tile.can_build() and not tile.has_units() and (not self.is_tile_near_recycler(tile)), self.inputs.my_tiles))
+            if len(list_eligible_tiles) > 0:
+                list_scrap_amounts = list(map(lambda tile : self.total_scrap_amount_of_adjacent_tiles(tile), list_eligible_tiles ))
+                best_recycler_location_index = np.argmax(list_scrap_amounts)
+                return list_eligible_tiles[best_recycler_location_index]
+        elif logic == "closer_to_opp":
+            opponent_center = self.get_opponent_center()
+            closest_tile_from_opponent_tiles = self.get_closest_tiles_from_opponent_tile(opponent_center)
+            list_eligible_tiles = list(filter(lambda tile: tile.can_build() and not tile.has_units() and (not self.is_tile_near_recycler(tile)), closest_tile_from_opponent_tiles))
+            if len(list_eligible_tiles) > 0:
+                return list_eligible_tiles[0]
         return None
 
 
@@ -148,9 +166,12 @@ class Game:
 
     def play(self, t0):
         actions = []
-        if self.turn >= 2 and self.turn % self.interval_recycler == 0 :
+        if self.should_build_recycler == True and self.turn % self.interval_recycler == 0 :
             if self.inputs.my_matter >= 10:
-                tile = self.get_best_recycler_tile()
+                if self.turn <= self.number_turn_for_strategy:
+                    tile = self.get_best_recycler_tile("best_amount")
+                else:
+                    tile = self.get_best_recycler_tile("closer_to_opp")
                 if tile != None:
                     actions.append('BUILD {} {}'.format(tile.x, tile.y))
                     self.inputs.my_matter -= 10
@@ -170,13 +191,6 @@ class Game:
                             else:
                                 actions.append('SPAWN {} {} {}'.format(amount // len(spawn_tiles), closest_tile.x, closest_tile.y))
 
-
-                # if closest_tile_from_opponent_tile != None and closest_tile_from_opponent_tile.can_spawn(): # TODO : Find another location here if we can't build
-                #     amount = self.inputs.my_matter // 10  
-                #     if amount > 0:
-                #         actions.append('SPAWN {} {} {}'.format(
-                #             amount, closest_tile_from_opponent_tile.x, closest_tile_from_opponent_tile.y))
-       
         farest_tiles, closest_tiles = self.get_extreme_tiles_from_opponent_center(self.ratio_scouters)
         
         targeted_tiles = self.inputs.targeted_tiles
