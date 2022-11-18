@@ -19,12 +19,20 @@ class Game:
         return math.sqrt((xA - xB)**2 + (yA - yB)**2)
     
     def update_interval_recycler(self):
-        if self.turn < 10:
-            self.interval_recycler = 2
-        elif self.turn < 20:
-            self.interval_recycler = 3
+        if self.height > 10:
+            if self.turn < 10:
+                self.interval_recycler = 2
+            elif self.turn < 20:
+                self.interval_recycler = 3
+            else:
+                self.interval_recycler = 4
         else:
-            self.interval_recycler = 4
+            if self.turn < 10:
+                self.interval_recycler = 3
+            elif self.turn < 20:
+                self.interval_recycler = 4
+            else:
+                self.interval_recycler = 5
 
     def get_extreme_tiles(self,tile, list_tiles, ratio=0.2):
         ordered_tiles = list_tiles.sort(reverse = True,key=lambda sorted_tile : self.distance_tiles(sorted_tile, tile))
@@ -40,11 +48,20 @@ class Game:
             return list_tiles[closest_tile_index]
         return None 
 
-    def find_closest_targeted_tile(self, current_tile, should_target_ennemy):
+    def find_closest_targeted_tiles(self, current_tile, should_target_ennemy, number_output_tiles = 1, opponent_tiles=self.inputs.opp_tiles):
         # TODO : optimize to get more diversity in the way the robot are looking for targeted tiles
         if should_target_ennemy:
-            return self.get_extreme_tile(current_tile, self.inputs.opp_tiles)
-        return self.get_extreme_tile(current_tile, self.inputs.targeted_tiles)
+            if current_tile.units < 2:  
+                return [self.get_extreme_tile(current_tile, opponent_tiles)]
+            else:
+                number_output_tiles = math.min(number_output_tiles, current_tile.units)
+                farest_tiles, _ = self.get_extreme_tiles(current_tile, opponent_tiles, 1)
+                # list distances ordered by asc order 
+                if len(farest_tiles) > number_output_tiles:
+                    return farest_tiles.reverse()[:number_output_tiles] 
+                else:
+                    return farest_tiles.reverse()
+        return [self.get_extreme_tile(current_tile, self.inputs.targeted_tiles)]
 
     def get_opponent_center(self):
         if len(self.inputs.opp_units) > 0:
@@ -55,7 +72,6 @@ class Game:
     def get_extreme_tiles_from_opponent_center(self, ratio):
         opponent_center = self.get_opponent_center()
         return self.get_extreme_tiles(opponent_center, self.inputs.my_units, ratio)
-
 
     def get_closest_tile_from_opponent_tile(self, opponent_tile):
         return self.get_extreme_tile(opponent_tile, self.inputs.my_tiles)
@@ -88,17 +104,20 @@ class Game:
     #     opponent_center = self.get_opponent_center()
     #     distances_units_to_ennemy_center = list(map(lambda unit : self.distance(unt.x, unit.y, opponent_center.x, opponent_center.y) ,self.inputs.my_units))
 
-    def get_action_to_move_tile_to_closest(self, tile, closest_targeted_tile):
-        if closest_targeted_tile != None:
-            target = Coordinate(closest_targeted_tile.x, closest_targeted_tile.y)
-        else :
-            target = Coordinate(tile.x+random.randint(0, 2)-1,
-                            tile.y+random.randint(0, 2)-1)
-        if target:
-            amount = tile.units  # TODO: pick amount of units to move
-            return ['MOVE {} {} {} {} {}'.format(
-                amount, tile.x, tile.y, target.x, target.y)]
-        return []
+    def get_action_to_move_tile_to_closest(self, tile, closest_targeted_tiles):
+        for idx, closest_target in enumerate(closest_targeted_tiles):
+            if closest_target != None:
+                target = Coordinate(closest_target.x, closest_target.y)
+            else :
+                target = Coordinate(tile.x+random.randint(0, 2)-1,
+                                tile.y+random.randint(0, 2)-1)
+            if target:
+                amount = tile.units // len(closest_targeted_tiles)  # TODO: pick amount of units to move
+                if idx == 0:
+                    amount += tile.units % len(closest_targeted_tiles)
+                return ['MOVE {} {} {} {} {}'.format(
+                    amount, tile.x, tile.y, target.x, target.y)]
+            return []
 
     def play(self):
         actions = []
@@ -119,42 +138,23 @@ class Game:
                     if amount > 0:
                         actions.append('SPAWN {} {} {}'.format(
                             amount, closest_tile_from_opponent_tile.x, closest_tile_from_opponent_tile.y))
-
-
        
         farest_tiles, closest_tiles = self.get_extreme_tiles_from_opponent_center(self.ratio_scouters)
 
         for tile in farest_tiles:
-            closest_targeted_tile = self.find_closest_targeted_tile(
+            closest_targeted_tiles = self.find_closest_targeted_tiles(
                 tile, False)
-            actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tile)
+            actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tiles)
 
+        opponent_tiles = self.inputs.opp_tiles
         for tile in closest_tiles:
-            closest_targeted_tile = self.find_closest_targeted_tile(
-                tile, True)
-            actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tile)
+            if len(opponent_tiles)==0:
+                opponent_tiles = self.inputs.opp_tiles
+            closest_targeted_tiles = self.find_closest_targeted_tiles(
+                tile, True, 1, opponent_tiles)
+            opponent_tiles = list(filter(lambda opp: opp.get_coordinates() != closest_targeted_tiles.get_coordinates() , opponent_tiles))
+            actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tiles)
 
-
-        # Take the farest tile to farm neutral tiles
-        # farest_tile = self.get_farest_tile_from_opponent_tiles(
-        #     self.inputs.my_units)
-        # for tile in self.inputs.my_units:
-        #     if tile.get_coordinates() in [farest_tile.get_coordinates() for farest_tile in farest_tiles]:
-        #         closest_targeted_tile = self.find_closest_targeted_tile(
-        #         tile, False)
-        #     else:
-        #         closest_targeted_tile = self.find_closest_targeted_tile(
-        #         tile, True)
-
-        #     if closest_targeted_tile != None:
-        #         target = Coordinate(closest_targeted_tile.x, closest_targeted_tile.y)
-        #     else :
-        #         target = Coordinate(tile.x+random.randint(0, 2)-1,
-        #                         tile.y+random.randint(0, 2)-1)
-        #     if target:
-        #         amount = tile.units  # TODO: pick amount of units to move
-        #         actions.append('MOVE {} {} {} {} {}'.format(
-        #             amount, tile.x, tile.y, target.x, target.y))
         self.turn += 1
         self.update_interval_recycler()
         return actions
