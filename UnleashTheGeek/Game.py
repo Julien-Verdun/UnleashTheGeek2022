@@ -20,13 +20,17 @@ class Game:
         return math.sqrt((xA - xB)**2 + (yA - yB)**2)
     
     def update_interval_recycler(self):
-        if self.height > self.height_threshold:
+        if self.height >= self.height_threshold:
             if self.turn < 10:
                 self.interval_recycler = 2
             elif self.turn < 20:
-                self.interval_recycler = 10
+                self.interval_recycler = 3
+            elif self.turn < 30:
+                self.interval_recycler = 4
             elif self.turn < 40:
-                self.interval_recycler = 1000
+                self.interval_recycler = 5
+            elif self.turn >= 50:
+                self.interval_recycler = 10
 
             if self.turn < 15:
               self.ratio_scouters = 1
@@ -101,8 +105,10 @@ class Game:
         opponent_center = self.get_opponent_center()
         return self.get_extreme_tiles(opponent_center, self.inputs.my_units, ratio)
 
-    def get_closest_tile_from_opponent_tile(self, opponent_tile):
-        return self.get_extreme_tile(opponent_tile, self.inputs.my_tiles)
+    def get_closest_tiles_from_opponent_tile(self, opponent_tile):
+        a,b = self.get_extreme_tiles(opponent_tile, self.inputs.my_tiles, 1)
+        a.reverse()
+        return a
 
     def total_scrap_amount_of_adjacent_tiles(self, tile):
         if tile.x > 0 and tile.x < self.width-1 and tile.y > 0 and tile.y < self.height-1:     
@@ -140,9 +146,9 @@ class Game:
                     amount, my_tile.x, my_tile.y, target.x, target.y))
         return tile_actions
 
-    def play(self):
+    def play(self, t0):
         actions = []
-        if self.turn > 2 and self.turn % self.interval_recycler == 0 :
+        if self.turn >= 2 and self.turn % self.interval_recycler == 0 :
             if self.inputs.my_matter >= 10:
                 tile = self.get_best_recycler_tile()
                 if tile != None:
@@ -151,12 +157,25 @@ class Game:
         if self.inputs.my_matter >= 10:
             opponent_center = self.get_opponent_center()
             if opponent_center != None:
-                closest_tile_from_opponent_tile = self.get_closest_tile_from_opponent_tile(opponent_center)
-                if closest_tile_from_opponent_tile != None and closest_tile_from_opponent_tile.can_spawn(): # TODO : Find another location here if we can't build
+                closest_tile_from_opponent_tiles = self.get_closest_tiles_from_opponent_tile(opponent_center)
+                if len(closest_tile_from_opponent_tiles) > 0:
+                    closest_tile_from_opponent_tiles = list(filter(lambda closest_tile_from_opponent_tile: closest_tile_from_opponent_tile != None and closest_tile_from_opponent_tile.can_spawn(), closest_tile_from_opponent_tiles))
+                    # ! list
                     amount = self.inputs.my_matter // 10  
-                    if amount > 0:
-                        actions.append('SPAWN {} {} {}'.format(
-                            amount, closest_tile_from_opponent_tile.x, closest_tile_from_opponent_tile.y))
+                    if amount > 0 and len(closest_tile_from_opponent_tiles) > 0:
+                        spawn_tiles = closest_tile_from_opponent_tiles[:min(amount,len(closest_tile_from_opponent_tiles))]
+                        for idx,closest_tile in enumerate(spawn_tiles):
+                            if idx == 0:
+                                actions.append('SPAWN {} {} {}'.format(amount // len(spawn_tiles) + amount % len(spawn_tiles), closest_tile.x, closest_tile.y))
+                            else:
+                                actions.append('SPAWN {} {} {}'.format(amount // len(spawn_tiles), closest_tile.x, closest_tile.y))
+
+
+                # if closest_tile_from_opponent_tile != None and closest_tile_from_opponent_tile.can_spawn(): # TODO : Find another location here if we can't build
+                #     amount = self.inputs.my_matter // 10  
+                #     if amount > 0:
+                #         actions.append('SPAWN {} {} {}'.format(
+                #             amount, closest_tile_from_opponent_tile.x, closest_tile_from_opponent_tile.y))
        
         farest_tiles, closest_tiles = self.get_extreme_tiles_from_opponent_center(self.ratio_scouters)
         

@@ -55,7 +55,7 @@ class Inputs:
             self.tiles.append(tiles)
             self.targeted_tiles = self.neutral_tiles + self.opp_tiles
             # list(filter(lambda opp_tile: opp_tile.get_coordinates() not in list(map(lambda recycler : recycler.get_coordinates() ,self.opp_recyclers)) ,self.opp_tiles))
-        self.compute_diffusion_matrix()
+        # self.compute_diffusion_matrix()
 
     def compute_diffusion_matrix(self):
         diffusion_matrix = np.zeros((self.height, self.width))
