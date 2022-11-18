@@ -10,7 +10,7 @@ class Game:
         self.height = height
         self.width = width
         self.interval_recycler = 2
-        self.ratio_scouters = 0.2
+        self.ratio_scouters = 0.8
         self.height_threshold = 10
 
     def distance_tiles(self, tileA, tileB):
@@ -24,20 +24,34 @@ class Game:
             if self.turn < 10:
                 self.interval_recycler = 2
             elif self.turn < 20:
-                self.interval_recycler = 3
-            else:
-                self.interval_recycler = 4
+                self.interval_recycler = 10
+            elif self.turn < 40:
+                self.interval_recycler = 1000
+
+            if self.turn < 15:
+              self.ratio_scouters = 1
+            elif self.turn < 30:
+                self.ratio_scouters = 0.5
         else:
             if self.turn < 10:
                 self.interval_recycler = 3
             elif self.turn < 20:
-                self.interval_recycler = 4
-            else:
-                self.interval_recycler = 5
+                self.interval_recycler = 10
+            elif self.turn < 40:
+                self.interval_recycler = 1000
+
+            if self.turn < 10:
+                self.ratio_scouters = 1
+            elif self.turn < 20:
+                self.ratio_scouters = 0.5
 
     def get_extreme_tiles(self,tile, list_tiles, ratio=0.2):
-        ordered_tiles = list_tiles.sort(reverse = True,key=lambda tile_to_sort : self.distance_tiles(tile_to_sort, tile))
-        return ordered_tiles[:int(len(ordered_tiles)*ratio)], ordered_tiles[int(len(ordered_tiles)*ratio):]
+        ordered_tiles = list_tiles
+        if len(list_tiles) > 0:
+            ordered_tiles.sort(reverse = True,key=lambda tile_to_sort : self.distance_tiles(tile_to_sort, tile))
+            return ordered_tiles[:int(len(ordered_tiles)*ratio)], ordered_tiles[int(len(ordered_tiles)*ratio):]
+        else:
+            return [],[]
 
     def get_extreme_tile(self,tile, list_tiles, aggregator="min"):
         distances = list(map(lambda targeted_tile : self.distance_tiles(targeted_tile, tile) ,list_tiles))
@@ -49,19 +63,32 @@ class Game:
             return list_tiles[tile_index]
         return None 
 
-    def find_closest_targeted_tiles(self, current_tile, should_target_ennemy, number_output_tiles = 1, opponent_tiles=self.inputs.opp_tiles):
+    def find_closest_targeted_tiles(self, current_tile, should_target_ennemy, number_output_tiles = 1, opponent_tiles=None):
         if should_target_ennemy:
             if current_tile.units < 2:  
                 return [self.get_extreme_tile(current_tile, opponent_tiles)]
             else:
-                number_output_tiles = math.min(number_output_tiles, current_tile.units)
+                number_output_tiles = min(number_output_tiles, current_tile.units)
                 farest_tiles, _ = self.get_extreme_tiles(current_tile, opponent_tiles, 1)
+                farest_tiles.reverse()
                 # list distances ordered by asc order 
                 if len(farest_tiles) > number_output_tiles:
-                    return farest_tiles.reverse()[:number_output_tiles] 
+                    return farest_tiles[:number_output_tiles] 
                 else:
-                    return farest_tiles.reverse()
-        return [self.get_extreme_tile(current_tile, self.inputs.targeted_tiles)]
+                    return farest_tiles
+        else:
+            if current_tile.units < 2:  
+                return [self.get_extreme_tile(current_tile,  self.inputs.targeted_tiles)]
+            else:
+                number_output_tiles = min(number_output_tiles, current_tile.units)
+                farest_tiles, _ = self.get_extreme_tiles(current_tile, opponent_tiles, 1)
+                farest_tiles.reverse()
+                # list distances ordered by asc order 
+                if len(farest_tiles) > number_output_tiles:
+                    return farest_tiles[:number_output_tiles] 
+                else:
+                    return farest_tiles
+        # return [self.get_extreme_tile(current_tile, self.inputs.targeted_tiles)]
 
     def get_opponent_center(self):
         if len(self.inputs.opp_units) > 0:
@@ -115,7 +142,7 @@ class Game:
 
     def play(self):
         actions = []
-        if self.turn % self.interval_recycler == 0 :
+        if self.turn > 2 and self.turn % self.interval_recycler == 0 :
             if self.inputs.my_matter >= 10:
                 tile = self.get_best_recycler_tile()
                 if tile != None:
@@ -132,18 +159,24 @@ class Game:
                             amount, closest_tile_from_opponent_tile.x, closest_tile_from_opponent_tile.y))
        
         farest_tiles, closest_tiles = self.get_extreme_tiles_from_opponent_center(self.ratio_scouters)
-
+        
+        targeted_tiles = self.inputs.targeted_tiles
         for tile in farest_tiles:
+            if len(targeted_tiles) ==0:
+                targeted_tiles = self.inputs.targeted_tiles
             closest_targeted_tiles = self.find_closest_targeted_tiles(
-                tile, False)
+                tile, False, tile.units, targeted_tiles)
+            targeted_tiles = list(filter(lambda target: target.get_coordinates() not in list(map(lambda closest_tile: closest_tile.get_coordinates(), closest_targeted_tiles)) , targeted_tiles))
             actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tiles)
 
-        opponent_tiles = self.inputs.opp_tiles
+        # opponent_tiles = self.inputs.opp_tiles
+        opponent_tiles = self.inputs.opp_units
         for tile in closest_tiles:
             if len(opponent_tiles)==0:
-                opponent_tiles = self.inputs.opp_tiles
+                opponent_tiles = self.inputs.opp_units
+                # opponent_tiles = self.inputs.opp_tiles
             closest_targeted_tiles = self.find_closest_targeted_tiles(
-                tile, True, math.ceil(tile.units / 2), opponent_tiles)
+                tile, True, tile.units, opponent_tiles) #  math.ceil(tile.units / 2)
             opponent_tiles = list(filter(lambda opp: opp.get_coordinates() not in list(map(lambda closest_tile: closest_tile.get_coordinates(), closest_targeted_tiles)) , opponent_tiles))
             actions += self.get_action_to_move_tile_to_closest(tile, closest_targeted_tiles)
 

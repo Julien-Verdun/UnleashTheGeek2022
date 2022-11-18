@@ -91,5 +91,5 @@ class Inputs:
         for tile in self.grass_tiles:
             diffusion_matrix[tile.y,tile.x] = -1
 
-        print(diffusion_matrix, file=sys.stderr, flush=True)
+        # print(diffusion_matrix, file=sys.stderr, flush=True)
         return diffusion_matrix

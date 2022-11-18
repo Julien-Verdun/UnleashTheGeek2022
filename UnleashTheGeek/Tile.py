@@ -6,8 +6,8 @@ class Tile:
         self.owner = owner
         self.units = units
         self.recycler = recycler
-        self.can_build = can_build
-        self.can_spawn = can_spawn
+        self.can_build_bool = can_build
+        self.can_spawn_bool = can_spawn
         self.in_range_of_recycler = in_range_of_recycler
     def get_coordinates(self):
         return [self.x, self.y]
@@ -24,6 +24,6 @@ class Tile:
     def has_units(self):
         return self.units > 0
     def can_build(self):
-        return self.can_build == 1
+        return self.can_build_bool == 1
     def can_spawn(self):
-        return self.can_spawn == 1
+        return self.can_spawn_bool == 1
